@@ -3,12 +3,16 @@ using System.Collections.Generic;
 using System.Numerics;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
-using Dalamud.Interface.Internal.Notifications;
+//using Dalamud.Interface.Internal.Notifications;
 using Dalamud.Interface.Windowing;
+using Dalamud.IoC;
 using Dalamud.Logging;
+using Dalamud.Plugin.Services;
+using Dalamud.Plugin;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using ImGuiNET;
+using Dalamud.Interface.ImGuiNotification;
 
 namespace BetterInBlue.Windows;
 
@@ -19,6 +23,13 @@ public class MainWindow : Window, IDisposable {
     private int editing;
     private string searchFilter = string.Empty;
     private bool shouldOpen;
+    [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
+    [PluginService] internal static ITextureProvider TextureProvider { get; private set; } = null!;
+    [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
+    [PluginService] internal static IClientState ClientState { get; private set; } = null!;
+    [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
+    [PluginService] internal static IPluginLog Log { get; private set; } = null!;
+    [PluginService] internal static INotificationManager NotificationManager { get; private set; } = null!;
 
     public MainWindow(Plugin plugin) : base("Better in Blue") {
         this.plugin = plugin;
@@ -63,11 +74,11 @@ public class MainWindow : Window, IDisposable {
                     Plugin.Configuration.Loadouts.Add(maybeLoadout);
                     Plugin.Configuration.Save();
                 } else {
-                    Services.PluginInterface.UiBuilder.AddNotification(
-                        "Failed to load preset from clipboard.",
-                        "Better in Blue",
-                        NotificationType.Error
-                    );
+                    Notification notification = new Notification();
+                    notification.Title = "Better In Blue";
+                    notification.Content = "Failed to load preset from clipboard.";
+                    notification.Type = NotificationType.Error;
+                    NotificationManager.AddNotification(notification);
                 }
             }
 
@@ -121,12 +132,12 @@ public class MainWindow : Window, IDisposable {
                 )) {
                 var worked = this.selectedLoadout.Apply();
                 if (!worked) {
-                    Services.PluginInterface.UiBuilder.AddNotification(
-                        "Failed to apply loadout. :(\n"
-                        + "You should have gotten an error message on screen explaining why. If not, please report this!",
-                        "Better in Blue",
-                        NotificationType.Error
-                    );
+                    Notification notification = new Notification();
+                    notification.Title = "Better In Blue";
+                    notification.Content = "Failed to apply loadout. :(\n"
+                        + "You should have gotten an error message on screen explaining why. If not, please report this!";
+                    notification.Type = NotificationType.Error;
+                    NotificationManager.AddNotification(notification);
                 }
             }
 
@@ -151,11 +162,11 @@ public class MainWindow : Window, IDisposable {
 
             if (ImGuiComponents.IconButton(FontAwesomeIcon.FileExport)) {
                 ImGui.SetClipboardText(this.selectedLoadout.ToPreset());
-                Services.PluginInterface.UiBuilder.AddNotification(
-                    "Copied loadout to clipboard.\nConsider sharing it in #preset-sharing in the XIVLauncher & Dalamud Discord server!",
-                    "Better in Blue",
-                    NotificationType.Success
-                );
+                Notification notification = new Notification();
+                notification.Title = "Better In Blue";
+                notification.Content = "Copied loadout to clipboard.\nConsider sharing it in #preset-sharing in the XIVLauncher & Dalamud Discord server!";
+                notification.Type = NotificationType.Success;
+                NotificationManager.AddNotification(notification);
             }
 
             if (ImGui.IsItemHovered()) ImGui.SetTooltip("Copy this loadout as a preset to the clipboard.");

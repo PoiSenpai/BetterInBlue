@@ -1,8 +1,8 @@
-﻿using Dalamud.Configuration;
+using Dalamud.Configuration;
 using Dalamud.Plugin;
 using System;
 using System.Collections.Generic;
-using Lumina.Excel.GeneratedSheets;
+//using Lumina.Excel.GeneratedSheets;
 
 namespace BetterInBlue;
 

@@ -9,9 +9,12 @@ using Dalamud.Interface.Internal;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
 using Lumina.Excel;
-using Lumina.Excel.GeneratedSheets;
-using Action = Lumina.Excel.GeneratedSheets.Action;
+using Lumina.Excel.Sheets;
+using Action = Lumina.Excel.Sheets.Action;
 using System.Linq;
+using Dalamud.IoC;
+using Dalamud.Plugin.Services;
+using Dalamud.Interface.Textures.TextureWraps;
 
 namespace BetterInBlue;
 
@@ -28,37 +31,44 @@ public sealed class Plugin : IDalamudPlugin {
     public static ExcelSheet<AozAction> AozAction = null!;
     public static ExcelSheet<AozActionTransient> AozActionTransient = null!;
 
-    public Plugin(DalamudPluginInterface pluginInterface) {
-        pluginInterface.Create<Services>();
+    [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
+    [PluginService] internal static ITextureProvider TextureProvider { get; private set; } = null!;
+    [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
+    [PluginService] internal static IClientState ClientState { get; private set; } = null!;
+    [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
+    [PluginService] internal static IPluginLog Log { get; private set; } = null!;
+    public Plugin() {
 
-        Configuration = Services.PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+        PluginInterface.Create<Services>();
+
+        Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         this.MainWindow = new MainWindow(this);
         this.ConfigWindow = new ConfigWindow(this);
 
         WindowSystem.AddWindow(MainWindow);
         WindowSystem.AddWindow(ConfigWindow);
 
-        Services.CommandManager.AddHandler(CommandName, new CommandInfo(OnCommandInternal) {
+        CommandManager.AddHandler(CommandName, new CommandInfo(OnCommandInternal) {
             HelpMessage = "Opens the main menu."
         });
 
-        Services.PluginInterface.UiBuilder.Draw += this.DrawUi;
-        Services.PluginInterface.UiBuilder.OpenConfigUi += this.OpenConfigUi;
+        PluginInterface.UiBuilder.Draw += this.DrawUi;
+        PluginInterface.UiBuilder.OpenConfigUi += this.OpenConfigUi;
 
-        Action = Services.DataManager.GetExcelSheet<Action>()!;
-        AozAction = Services.DataManager.GetExcelSheet<AozAction>()!;
-        AozActionTransient = Services.DataManager.GetExcelSheet<AozActionTransient>()!;
+        Action = DataManager.GetExcelSheet<Action>()!;
+        AozAction = DataManager.GetExcelSheet<AozAction>()!;
+        AozActionTransient = DataManager.GetExcelSheet<AozActionTransient>()!;
     }
-
+ 
     public IDalamudTextureWrap GetIcon(uint id) {
         if (id == 0) {
-            return Services.TextureProvider.GetTextureFromGame("ui/uld/DragTargetA_hr1.tex")!;
+            return (IDalamudTextureWrap) TextureProvider.GetFromFile("ui/uld/DragTargetA_hr1.tex");
         }
 
         var row = AozAction.GetRow(id)!;
         var transient = AozActionTransient.GetRow(row.RowId)!;
-        var icon = Services.TextureProvider.GetIcon(transient.Icon)!;
-        return icon;
+        var icon = TextureProvider.GetFromGameIcon(transient.Icon)!;
+        return (IDalamudTextureWrap) icon;
     }
 
     public void Dispose() {
@@ -109,12 +119,13 @@ public sealed class Plugin : IDalamudPlugin {
 
     public static uint AozToNormal(uint id) {
         if (id == 0) return 0;
-        return AozAction.GetRow(id)!.Action.Row;
+        //return AozAction.GetRow(id)!.Action.Row;
+        return AozAction.GetRow(id)!.RowId;
     }
 
     public static uint NormalToAoz(uint id) {
         foreach (var aozAction in AozAction) {
-            if (aozAction.Action.Row == id) return aozAction.RowId;
+            if (aozAction.RowId == id) return aozAction.RowId;
         }
 
         throw new Exception("https://tenor.com/view/8032213");

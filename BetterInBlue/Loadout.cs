@@ -1,10 +1,12 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Text.Json;
 using Dalamud.Game.ClientState.Conditions;
+using Dalamud.Game.Gui.PartyFinder.Types;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
+using static FFXIVClientStructs.FFXIV.Client.UI.Misc.RaptureHotbarModule;
 
 namespace BetterInBlue;
 
@@ -39,20 +41,20 @@ public class Loadout {
 
     public unsafe bool ActionUnlocked(uint id) {
         var normalId = Plugin.AozToNormal(id);
-        var link = Plugin.Action.GetRow(normalId)!.UnlockLink;
+        var link = Plugin.Action.GetRow(normalId)!.UnlockLink.RowId;
         return UIState.Instance()->IsUnlockLinkUnlocked(link);
     }
 
     public bool CanApply() {
         // Must be BLU to apply (id = 36)
-        if (Services.ClientState.LocalPlayer?.ClassJob.Id != 36) return false;
+        if (Services.ClientState.LocalPlayer?.ClassJob.RowId != 36) return false;
 
         // Can't apply in combat
         if (Services.Condition[ConditionFlag.InCombat]) return false;
 
         foreach (var action in this.Actions) {
             // No out of bounds indexing
-            if (action > Plugin.AozAction.RowCount) return false;
+            if (action > Plugin.AozAction.Count) return false;
 
             if (action != 0) {
                 // Can't have two actions in the same loadout
